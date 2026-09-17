@@ -1,0 +1,8 @@
+[project]
+name = "market-brief"
+version = "1.0.0"
+description = "LLM-backed FastAPI service producing structured twice-weekly stock and commodity briefs"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

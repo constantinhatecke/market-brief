@@ -1,0 +1,82 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>Market brief {{ date }}</title>
+<style>
+ body{margin:0;background:#f4f4f2;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#1c1c1c;font-size:15px;line-height:1.5}
+ .wrap{max-width:680px;margin:0 auto;background:#fff;padding:28px 32px}
+ h1{font-size:22px;margin:0 0 4px}
+ h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin:28px 0 8px;border-bottom:1px solid #e5e5e5;padding-bottom:4px}
+ .meta{color:#777;font-size:12px}
+ table{border-collapse:collapse;width:100%;font-size:13px}
+ th,td{text-align:left;padding:6px 6px;border-bottom:1px solid #eee;vertical-align:top}
+ th{color:#666;font-weight:600}
+ .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+ .pos{color:#1a7f37}.neg{color:#b42318}
+ .pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600}
+ .hold{background:#e8f0e9;color:#1a7f37}.watch{background:#fff4d6;color:#8a5a00}.review{background:#fde8e6;color:#b42318}
+ .bullish{background:#e8f0e9;color:#1a7f37}.bearish{background:#fde8e6;color:#b42318}.neutral{background:#eee;color:#555}
+ .card{border:1px solid #e5e5e5;border-radius:6px;padding:10px 12px;margin:0 0 10px}
+ .card b{font-size:15px}
+ .links a{color:#555;font-size:12px;margin-right:10px}
+ .risk li{margin-bottom:4px}
+ .foot{color:#888;font-size:11px;margin-top:28px;border-top:1px solid #e5e5e5;padding-top:10px}
+</style></head>
+<body><div class="wrap">
+<div class="meta">{{ date }} · {{ reading }} min read · regime: <b>{{ regime.label }}</b></div>
+<h1>{{ brief.headline }}</h1>
+
+<h2>Regime</h2>
+<p>{{ brief.regime_summary }}</p>
+<table><tr>
+<th>SPY vs 50/200DMA</th><th class="num">VIX</th><th class="num">Breadth</th><th class="num">SPY 1w / 1m</th></tr>
+<tr><td>{{ regime.spy_vs_50dma|pct }} / {{ regime.spy_vs_200dma|pct }}</td>
+<td class="num">{{ regime.vix|num }}</td>
+<td class="num">{{ (regime.breadth_sectors_above_50dma or 0)*100|round|int }}% sectors &gt; 50DMA</td>
+<td class="num">{{ regime.spy_ret_1w|pct }} / {{ regime.spy_ret_1m|pct }}</td></tr></table>
+
+<h2>Portfolio</h2>
+<table>
+<tr><th>Ticker</th><th class="num">Price</th><th class="num">1w</th><th class="num">vs 20DMA</th><th class="num">RSI</th><th class="num">P&amp;L</th><th>Status</th></tr>
+{% for row in portfolio_rows %}{% set m = metrics.get(row.ticker, {}) %}{% set n = brief.portfolio | selectattr('ticker','equalto',row.ticker) | first %}
+<tr><td><b>{{ row.ticker }}</b></td>
+<td class="num">{{ m.price|num(2) }}</td>
+<td class="num {{ 'pos' if (m.ret_1w or 0)>=0 else 'neg' }}">{{ m.ret_1w|pct }}</td>
+<td class="num">{{ m.pct_vs_dma20|pct }}</td>
+<td class="num">{{ m.rsi14|num(0) }}</td>
+<td class="num {{ 'pos' if (row.pnl_pct or 0)>=0 else 'neg' }}">{{ row.pnl_pct|pct }}</td>
+<td>{% if n %}<span class="pill {{ n.status }}">{{ n.status }}</span>{% endif %}</td></tr>
+{% if n %}<tr><td></td><td colspan="6" style="color:#444">{{ n.note }}</td></tr>{% endif %}
+{% endfor %}
+</table>
+
+<h2>Watchlist</h2>
+{% for w in brief.watchlist %}{% set m = metrics.get(w.ticker, {}) %}
+<div class="card"><b>{{ w.ticker }}</b> {% if w.name %}<span style="color:#666">{{ w.name }}</span>{% endif %}
+ <span class="pill {{ w.direction }}">{{ w.direction }}</span>
+ <span class="meta" style="float:right">{{ m.price|num(2) }} · 20d {{ m.mom_20|pct }} · RSI {{ m.rsi14|num(0) }}</span>
+ <div>{{ w.thesis }}</div>
+ <div style="color:#444;font-size:13px"><b>Levels:</b> {{ w.levels }}</div>
+ <div style="color:#444;font-size:13px"><b>Risk:</b> {{ w.risk }}</div>
+ <div class="links">{% for k,u in links(w.ticker).items() %}<a href="{{ u }}">{{ k }}</a>{% endfor %}</div>
+</div>
+{% endfor %}
+
+<h2>Commodities</h2>
+<table>
+<tr><th>Market</th><th class="num">Price</th><th class="num">20d</th><th class="num">vs 40DMA</th><th>Note</th></tr>
+{% for c in brief.commodities %}{% set m = metrics.get(c.ticker, {}) %}
+<tr><td><b>{{ c.name }}</b><br><a href="{{ links(c.ticker)['Yahoo'] }}" style="font-size:11px;color:#777">{{ c.ticker }}</a></td>
+<td class="num">{{ m.price|num(2) }}</td>
+<td class="num {{ 'pos' if (m.mom_20 or 0)>=0 else 'neg' }}">{{ m.mom_20|pct }}</td>
+<td class="num">{{ m.pct_vs_dma40|pct }}</td><td>{{ c.note }}</td></tr>
+{% endfor %}</table>
+
+<h2>Risk flags</h2>
+<ul class="risk">{% for r in brief.risks %}<li>{{ r }}</li>{% endfor %}</ul>
+{% if brief.calendar %}<h2>Calendar</h2><ul class="risk">{% for c in brief.calendar %}<li>{{ c }}</li>{% endfor %}</ul>{% endif %}
+
+<div class="foot">Generated automatically from Yahoo Finance data{% if model %} and {{ model }}{% endif %}.
+Information only, not investment advice. Metrics: 20/40/100DMA, RSI14, ATR14, 20-day high, relative volume,
+20/40-day momentum, EPS growth and estimate revisions, revenue revisions, P/E vs 4-year median, relative strength vs sector ETF and SPY,
+realised volatility, regime, liquidity.</div>
+</div></body></html>

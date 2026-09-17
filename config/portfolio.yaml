@@ -1,0 +1,16 @@
+# Edit this file (or use the CLI / API) and push. shares = number of shares, cost_basis = per share.
+currency: USD
+cash: 0
+positions:
+  - ticker: MSFT
+    shares: 5
+    cost_basis: 410
+  - ticker: ASML
+    shares: 3
+    cost_basis: 820
+  - ticker: XLE
+    shares: 20
+    cost_basis: 88
+  - ticker: GLD
+    shares: 10
+    cost_basis: 230
